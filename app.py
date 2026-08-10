@@ -166,6 +166,27 @@ html, body, [data-testid="stAppViewContainer"] {
     font-weight: 500 !important;
 }
 
+/* Selector de calidad */
+[data-testid="stRadio"] label {
+    color: rgba(255, 245, 249, 0.9) !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+}
+
+[data-testid="stRadio"] > div {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 14px;
+    padding: 10px 14px;
+    gap: 4px !important;
+}
+
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {
+    color: var(--diva-cream) !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+}
+
 .diva-footer {
     text-align: center;
     color: rgba(255, 245, 249, 0.45);
@@ -215,6 +236,19 @@ st.markdown("""
 
 url = st.text_input("Enlace de YouTube", placeholder="https://www.youtube.com/watch?v=...")
 
+calidad_opciones = {
+    "Máxima (320 kbps)": "320",
+    "Media (192 kbps)": "192",
+    "Baja (128 kbps)": "128",
+}
+
+calidad_label = st.radio(
+    "Calidad del MP3",
+    options=list(calidad_opciones.keys()),
+    index=0,
+    horizontal=True,
+)
+
 st.write("")
 
 if st.button("Convertir a MP3"):
@@ -230,9 +264,23 @@ if st.button("Convertir a MP3"):
                     'postprocessors': [{
                         'key': 'FFmpegExtractAudio',
                         'preferredcodec': 'mp3',
-                        'preferredquality': '320',
+                        'preferredquality': calidad_opciones[calidad_label],
                     }],
                     'outtmpl': 'downloads/%(title)s.%(ext)s',
+                    'noplaylist': True,
+                    'quiet': True,
+                    'no_warnings': True,
+                    # Fuerza el cliente "android" de YouTube: suele evitar el
+                    # error "Video unavailable" que da el cliente web cuando
+                    # YouTube cambia su firma de cifrado.
+                    'extractor_args': {
+                        'youtube': {
+                            'player_client': ['android', 'web'],
+                        }
+                    },
+                    'http_headers': {
+                        'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip'
+                    },
                 }
 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -253,6 +301,7 @@ if st.button("Convertir a MP3"):
 
             except Exception as e:
                 st.error(f"Ocurrió un error al procesar el enlace: {str(e)}")
+                st.info("Si el error persiste, actualiza yt-dlp con: pip install -U yt-dlp")
 
 st.markdown("""
     <div class="diva-footer">Diva MP3</div>
